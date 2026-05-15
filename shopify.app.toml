@@ -2,7 +2,7 @@
 
 client_id = "eacf6dde6d626fb22d4a5725c52ad484"
 name = "AutoDiscount"
-application_url = "https://internal-methodology-trading-syracuse.trycloudflare.com"
+application_url = "https://dista-auto-discount.onrender.com/"
 embedded = true
 
 [webhooks]
@@ -10,11 +10,11 @@ api_version = "2026-07"
 
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
-  uri = "https://example.com/webhooks/app/scopes_update"
+  uri = "https://dista-auto-discount.onrender.com/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
-  uri = "https://example.com/webhooks/app/uninstalled"
+  uri = "https://dista-auto-discount.onrender.com/webhooks/app/uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -24,11 +24,11 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://internal-methodology-trading-syracuse.trycloudflare.com/api/auth"
+  "https://dista-auto-discount.onrender.com//api/auth"
 ]
 
 [app_proxy]
-url = "https://internal-methodology-trading-syracuse.trycloudflare.com"
+url = "https://dista-auto-discount.onrender.com/"
 subpath = "promo-engine"
 prefix = "apps"
 

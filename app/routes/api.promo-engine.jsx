@@ -217,6 +217,12 @@ export async function loader({ request }) {
       },
     });
 
+    console.log("SESSION", {
+      shop: session.shop,
+      accessToken: session.accessToken ? "EXISTS" : "MISSING",
+      expires: session.expires,
+    });
+
     if (!session) {
       return Response.json({
         success: false,
