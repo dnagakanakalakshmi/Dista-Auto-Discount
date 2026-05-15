@@ -210,17 +210,11 @@ export async function loader({ request }) {
     }
 
     const cart = parseCartContext(url);
-    const session = await prisma.session.findFirst({
+    let session = await prisma.session.findFirst({
       where: {
         shop: SHOP,
         isOnline: false,
       },
-    });
-
-    console.log("SESSION", {
-      shop: session.shop,
-      accessToken: session.accessToken ? "EXISTS" : "MISSING",
-      expires: session.expires,
     });
 
     if (!session) {
@@ -230,6 +224,23 @@ export async function loader({ request }) {
         error: "Offline session not found",
       });
     }
+
+    if (session.expires) {
+      session = await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          expires: null,
+        },
+      });
+    }
+
+    console.log("SESSION", {
+      shop: session.shop,
+      accessToken: session.accessToken ? "EXISTS" : "MISSING",
+      expires: session.expires,
+    });
 
     const shopify = shopifyApi({
       apiKey: process.env.SHOPIFY_API_KEY,
