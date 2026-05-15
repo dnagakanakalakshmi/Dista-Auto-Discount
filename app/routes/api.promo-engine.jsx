@@ -225,21 +225,14 @@ export async function loader({ request }) {
       });
     }
 
-    if (session.expires) {
-      session = await prisma.session.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          expires: null,
-        },
-      });
-    }
+    session = await refreshSessionIfNeeded(session);
 
     console.log("SESSION", {
       shop: session.shop,
       accessToken: session.accessToken ? "EXISTS" : "MISSING",
       expires: session.expires,
+      refreshToken: session.refreshToken ? "EXISTS" : "MISSING",
+      refreshTokenExpires: session.refreshTokenExpires,
     });
 
     const shopify = shopifyApi({
@@ -307,6 +300,114 @@ export async function loader({ request }) {
       eligible: false,
       error: error.message,
     });
+  }
+}
+
+async function refreshSessionIfNeeded(session) {
+  if (!session.expires) {
+    console.log("[SHOPIFY TOKEN REFRESH] Skipped: token does not expire", {
+      shop: session.shop,
+      isOnline: session.isOnline,
+    });
+
+    return session;
+  }
+
+  const refreshWindowMs = 5 * 60 * 1000;
+  const expiresAt = new Date(session.expires).getTime();
+  const shouldRefresh = expiresAt <= Date.now() + refreshWindowMs;
+
+  if (!shouldRefresh) {
+    console.log("[SHOPIFY TOKEN REFRESH] Skipped: token still valid", {
+      shop: session.shop,
+      expires: session.expires,
+    });
+
+    return session;
+  }
+
+  if (!session.refreshToken) {
+    console.log("[SHOPIFY TOKEN REFRESH] Failed: missing refresh token", {
+      shop: session.shop,
+      expires: session.expires,
+    });
+
+    return session;
+  }
+
+  try {
+    console.log("[SHOPIFY TOKEN REFRESH] Started", {
+      shop: session.shop,
+      expires: session.expires,
+      refreshTokenExpires: session.refreshTokenExpires,
+    });
+
+    const tokenResponse = await fetch(
+      `https://${session.shop}/admin/oauth/access_token`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: process.env.SHOPIFY_API_KEY,
+          client_secret: process.env.SHOPIFY_API_SECRET,
+          grant_type: "refresh_token",
+          refresh_token: session.refreshToken,
+        }),
+      },
+    );
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      console.log("[SHOPIFY TOKEN REFRESH] Failed: token endpoint error", {
+        shop: session.shop,
+        status: tokenResponse.status,
+        error: tokenData.error,
+        errorDescription: tokenData.error_description,
+      });
+
+      return session;
+    }
+
+    const now = Date.now();
+    const expires = tokenData.expires_in
+      ? new Date(now + Number(tokenData.expires_in) * 1000)
+      : null;
+    const refreshTokenExpires = tokenData.refresh_token_expires_in
+      ? new Date(now + Number(tokenData.refresh_token_expires_in) * 1000)
+      : session.refreshTokenExpires;
+
+    const updatedSession = await prisma.session.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        accessToken: tokenData.access_token,
+        expires,
+        refreshToken: tokenData.refresh_token || session.refreshToken,
+        refreshTokenExpires,
+        scope: tokenData.scope || session.scope,
+      },
+    });
+
+    console.log("[SHOPIFY TOKEN REFRESH] Success", {
+      shop: updatedSession.shop,
+      expires: updatedSession.expires,
+      refreshToken: updatedSession.refreshToken ? "UPDATED" : "MISSING",
+      refreshTokenExpires: updatedSession.refreshTokenExpires,
+    });
+
+    return updatedSession;
+  } catch (error) {
+    console.log("[SHOPIFY TOKEN REFRESH] Failed: request exception", {
+      shop: session.shop,
+      message: error.message,
+    });
+
+    return session;
   }
 }
 
