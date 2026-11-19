@@ -10,7 +10,7 @@ generator client {
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://auto_discount_db_user:kZtRG8t5fh2F45OZllw99v29mPVS3aQr@dpg-d8nu83egvqtc73e52urg-a.oregon-postgres.render.com/auto_discount_db"
+  url      = "postgresql://dista_auto_discount_user:bti9ay5VqDhxQIGrcN92E9CZsDyoZJ72@dpg-dbv7ptd6e07s73b11t2g-a.oregon-postgres.render.com/dista_auto_discount"
 }
 
 model Session {
